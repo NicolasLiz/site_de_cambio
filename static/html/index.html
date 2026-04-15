@@ -1,0 +1,25 @@
+<!doctype HTML>
+
+<html>
+    <head>
+        <title>Coin conversion</title>
+        <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+    </head>
+    <body>
+        <form id="conversion" hx-post="/convert" hx-target="#result"\>
+            <input type="number" name="ammount" min="0"></input>
+            <select name="from">
+                <option value="BRL">BRL</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+            </select>
+            <select name="to">
+                <option value="BRL">BRL</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+            </select>
+            <label id="result">0</label>
+            <button type="submit" value="convert">convert</button>
+        </form>
+    </body>
+</html>
