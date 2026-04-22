@@ -4,11 +4,12 @@
     <head>
         <title>Coin conversion</title>
         <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0"></script>
     </head>
     <body>
         <form id="conversion" hx-post="/convert" hx-target="#result"\>
             <input type="number" name="ammount" min="0"></input>
-            <select name="from">
+            <select name="from" onchange="updateGraph(1);" onfocus="this.selectedIndex=-1;" id="from">
                 <option value="SBD">SBD</option>
                 <option value="SZL">SZL</option>
                 <option value="XAF">XAF</option>
@@ -185,7 +186,7 @@
                 <option value="MGA">MGA</option>
                 <option value="MRO">MRO</option>
                 <option value="NPR">NPR</option>
-                <option value="OP">"OP",</option>
+                <option value="OP">OP</option>
                 <option value="BRL">BRL</option>
                 <option value="MUR">MUR</option>
                 <option value="RSD">RSD</option>
@@ -201,7 +202,7 @@
                 <option value="WST">WST</option>
                 <option value="XPF">XPF</option>
             </select>
-            <select name="to">
+            <select name="to" onchange="updateGraph(2);" onfocus="this.selectedIndex=-1;" id="to">
                 <option value="SBD">SBD</option>
                 <option value="SZL">SZL</option>
                 <option value="XAF">XAF</option>
@@ -378,7 +379,7 @@
                 <option value="MGA">MGA</option>
                 <option value="MRO">MRO</option>
                 <option value="NPR">NPR</option>
-                <option value="OP">"OP",</option>
+                <option value="OP">OP</option>
                 <option value="BRL">BRL</option>
                 <option value="MUR">MUR</option>
                 <option value="RSD">RSD</option>
@@ -397,5 +398,8 @@
             <label id="result">0</label>
             <button type="submit" value="convert">convert</button>
         </form>
+        <canvas id="fromGraph" style="width=100%; max-width:500px; height=100%; max-height:300px"></canvas>
+        <canvas id="toGraph" style="width=100%; max-width:500px; height=100%; max-height:300px"></canvas>
+        <script src="script.js"></script>
     </body>
 </html>

@@ -58,8 +58,10 @@ func main() {
 
 	e.Static("/static", "static")
 	e.File("/", "static/html/index.html")
+	e.File("/script.js", "static/js/script.js")
 
 	e.POST("/convert", convertCoins)
+	e.POST("/graph-data", graphData)
 
 	if err := e.Start(":8080"); err != nil {
 		e.Logger.Error("failed to start server", "error", err)
@@ -92,7 +94,40 @@ func convertCoins(c *echo.Context) error {
 	if err != nil {
 		log.Println(err)
 	}
-	return c.String(http.StatusOK, fmt.Sprintf("%.3f", res))
+	return c.String(http.StatusOK, fmt.Sprintf("%f", res))
+}
+
+func graphData(c *echo.Context) error {
+	values, err := database.GetHistorical(c.FormValue("symbol"))
+	if err != nil {
+		log.Println(err)
+	}
+
+	year := strconv.Itoa(time.Now().Year())
+	var res = make([]database.Value, 12)
+	var counts = make([]int, 12)
+	for _, v := range values {
+		date := strings.Split(v.Date, "-")
+		month, _ := strconv.Atoi(date[1])
+		if date[0] == year {
+			res[month-1].Value += v.Value
+			counts[month-1]++
+		}
+	}
+	
+	for i := range res {
+		if counts[i] != 0 {
+			res[i].Value = res[i].Value / float64(counts[i])
+		}
+		res[i].Date = strings.Join([]string{year, strconv.Itoa(i+1), "01"}, "-")
+	}
+
+	log.Printf("%v", res)
+
+	var response bytes.Buffer
+	encoder := json.NewEncoder(&response)
+	encoder.Encode(&res)
+	return c.String(http.StatusOK, response.String())
 }
 
 func getCurrentValues() error {
@@ -114,7 +149,37 @@ func getCurrentValues() error {
 		return err
 	}
 
-	fmt.Printf("%v", latest)
+	latest.Meta.LastUpdated = strings.Split(latest.Meta.LastUpdated, "T")[0]
+
+	for k, v := range latest.Data{
+		value := database.Value{Symbol:k, Value:v.Value, Date:latest.Meta.LastUpdated}
+		err := database.AddRow(value)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	return nil
+}
+
+func getHistoricalValues(date string) error {
+	res, err := APICall(fmt.Sprintf("https://api.currencyapi.com/v3/historical?date=%s", date))
+	if err != nil {
+		return err
+	}
+	
+	var body bytes.Buffer
+	io.Copy(&body, res.Body)
+	res.Body.Close()
+
+	fmt.Println(body)
+
+	decoder := json.NewDecoder(&body)
+	latest := LatestValues{}
+	err = decoder.Decode(&latest)
+	if err != nil {
+		return err
+	}
 
 	latest.Meta.LastUpdated = strings.Split(latest.Meta.LastUpdated, "T")[0]
 

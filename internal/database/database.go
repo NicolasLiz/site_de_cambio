@@ -25,10 +25,10 @@ func InitDB() {
 	}
 }
 
-func GetBySymbol(str string) ([]Value, error) {
+func GetHistorical(str string) ([]Value, error) {
 	var res []Value
 
-	query := `SELECT * FROM values WHERE symbol = ?`
+	query := `SELECT * FROM values_table WHERE symbol = ?`
 	rows, err := db.Query(query, str)
 	if err != nil {
 		log.Println(err)
@@ -38,7 +38,7 @@ func GetBySymbol(str string) ([]Value, error) {
 
 	for rows.Next() {
 		var val Value
-		if err := rows.Scan(&val.Symbol, &val.Value, &val.Date); err != nil {
+		if err := rows.Scan(&val.ID, &val.Symbol, &val.Value, &val.Date); err != nil {
 			return res, err
 		}
 		res = append(res, val)
@@ -52,7 +52,7 @@ func GetBySymbol(str string) ([]Value, error) {
 }
 
 func GetLatest(symbol string) (Value, error) {
-	query := `SELECT * FROM values_table WHERE symbol = ? ORDER BY id DESC LIMIT 1`
+	query := `SELECT * FROM values_table WHERE symbol = ? ORDER BY strftime("%s", date) DESC LIMIT 1`
 	row := db.QueryRow(query, symbol)
 
 	var val Value
