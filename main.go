@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strings"
+	"strconv"
 
 	"moeda/internal/database"
 
@@ -65,9 +66,33 @@ func main() {
 	}
 }
 
+func convertLatest(from, to, ammount string) (float64, error) {
+	log.Println(from, to, ammount)
+	res := 0.0
+
+	valFrom, err := database.GetLatest(from)
+	if err != nil {
+		return 0, err
+	}
+
+	valTo, err := database.GetLatest(to)
+	if err != nil {
+		return 0, err
+	}
+
+	ammountInt, _ := strconv.ParseFloat(ammount, 64)
+
+	res = (ammountInt / valFrom.Value) * valTo.Value
+
+	return res, nil
+}
+
 func convertCoins(c *echo.Context) error {
-	log.Println(c.FormValue("ammount"), c.FormValue("from"), c.FormValue("to"))
-	return c.String(http.StatusOK, c.FormValue("ammount"))
+	res, err := convertLatest(c.FormValue("from"), c.FormValue("to"), c.FormValue("ammount"))
+	if err != nil {
+		log.Println(err)
+	}
+	return c.String(http.StatusOK, fmt.Sprintf("%.3f", res))
 }
 
 func getCurrentValues() error {

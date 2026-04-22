@@ -51,30 +51,16 @@ func GetBySymbol(str string) ([]Value, error) {
 	return res, nil
 }
 
-func GetByDate(date string) ([]Value, error) {
-	var res []Value
+func GetLatest(symbol string) (Value, error) {
+	query := `SELECT * FROM values_table WHERE symbol = ? ORDER BY id DESC LIMIT 1`
+	row := db.QueryRow(query, symbol)
 
-	query := `SELECT * FROM values_table WHERE date BETWEEN "1970-01-01" AND ? ORDER BY ABS(strftime("%s", date) - strftime("%s", ?)) ASC`
-	rows, err := db.Query(query, date, date)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var val Value
-		if err := rows.Scan(&val.ID, &val.Symbol, &val.Value, &val.Date); err != nil {
-			return res, err
-		}
-		res = append(res, val)
-	}
-
-	if err := rows.Err(); err != nil {
-		return res, err
+	var val Value
+	if err := row.Scan(&val.ID, &val.Symbol, &val.Value, &val.Date); err != nil {
+		return Value{}, err
 	}
 	
-	return res, nil
+	return val, nil
 }
 
 func UpToDate(date string) bool {
