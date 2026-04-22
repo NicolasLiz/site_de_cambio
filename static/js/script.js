@@ -3,8 +3,8 @@ var fromGraph = new Chart("fromGraph", {
     data: {
         labels: [],
         datasets: [{
-            backgroundColor:"rgba(0,0,255,1.0)",
-            borderColor: "rgba(0,0,255,0.1)",
+            backgroundColor:"rgba(56, 189, 248, 1.0)",
+            borderColor: "rgba(56, 189, 248, 0.1)",
             data: []
         }]
     },
@@ -16,8 +16,8 @@ var toGraph = new Chart("toGraph", {
     data: {
         labels: [],
         datasets: [{
-            backgroundColor:"rgba(0,0,255,1.0)",
-            borderColor: "rgba(0,0,255,0.1)",
+            backgroundColor:"rgba(56, 189, 248, 1.0)",
+            borderColor: "rgba(56, 189, 248, 0.1)",
             data: []
         }]
     },

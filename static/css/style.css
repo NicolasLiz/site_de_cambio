@@ -1,0 +1,98 @@
+/* Reset some defaults */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Body styling */
+body {
+    background: #0f172a; /* dark blue */
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+/* Form container */
+form#conversion {
+    background: #1e293b;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    max-width: 600px;
+    width: 100%;
+}
+
+/* Inputs and selects */
+form input,
+form select {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    background: #334155;
+    color: #f1f5f9;
+    font-size: 14px;
+    transition: 0.2s ease;
+}
+
+/* Focus effect */
+form input:focus,
+form select:focus {
+    background: #475569;
+}
+
+/* Result label */
+#result {
+    width: 100%;
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 10px;
+    color: #38bdf8;
+}
+
+/* Button */
+button {
+    background: #38bdf8;
+    color: #0f172a;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s ease;
+}
+
+button:hover {
+    background: #0ea5e9;
+}
+
+/* Canvas styling */
+canvas {
+    margin-top: 25px;
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+    form#conversion {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    form input,
+    form select,
+    button {
+        width: 100%;
+    }
+}
