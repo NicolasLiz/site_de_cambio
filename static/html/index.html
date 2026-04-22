@@ -8,7 +8,7 @@
     </head>
     <body>
         <form id="conversion" hx-post="/convert" hx-target="#result"\>
-            <input type="number" name="ammount" min="0"></input>
+            <input type="number" name="ammount" min="0" step="any"></input>
             <select name="from" onchange="updateGraph(1);" onfocus="this.selectedIndex=-1;" id="from">
                 <option value="SBD">SBD</option>
                 <option value="SZL">SZL</option>

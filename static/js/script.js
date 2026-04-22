@@ -58,6 +58,9 @@ function updateGraph(which) {
                     })
                 }
             })
+            fromGraph.data.datasets.forEach((dataset) => {
+                dataset.label = document.getElementById("from").value
+            })
             fromGraph.update()
         })
     } else {
@@ -72,7 +75,13 @@ function updateGraph(which) {
                     })
                 }
             })
+            toGraph.data.datasets.forEach((dataset) => {
+                dataset.label = document.getElementById("to").value
+            })
             toGraph.update()
         })
     }
 }
+
+updateGraph(1)
+updateGraph(2)

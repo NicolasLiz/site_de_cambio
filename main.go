@@ -53,11 +53,6 @@ func main() {
 		}
 	}
 
-	//getting previous 10 months values
-	if err := getHistoricalValues("2025-12-01"); err != nil {
-		log.Fatal(err)
-	}
-
 	e := echo.New()
 	e.Use(middleware.RequestLogger())
 
