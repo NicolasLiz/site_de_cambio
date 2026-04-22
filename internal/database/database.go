@@ -28,7 +28,7 @@ func InitDB() {
 func GetHistorical(str string) ([]Value, error) {
 	var res []Value
 
-	query := `SELECT * FROM values_table WHERE symbol = ?`
+	query := `SELECT * FROM values_table WHERE symbol = ? ORDER BY strftime("%s", date) ASC`
 	rows, err := db.Query(query, str)
 	if err != nil {
 		log.Println(err)

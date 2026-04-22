@@ -53,6 +53,11 @@ func main() {
 		}
 	}
 
+	//getting previous 10 months values
+	if err := getHistoricalValues("2025-12-01"); err != nil {
+		log.Fatal(err)
+	}
+
 	e := echo.New()
 	e.Use(middleware.RequestLogger())
 
@@ -103,30 +108,9 @@ func graphData(c *echo.Context) error {
 		log.Println(err)
 	}
 
-	year := strconv.Itoa(time.Now().Year())
-	var res = make([]database.Value, 12)
-	var counts = make([]int, 12)
-	for _, v := range values {
-		date := strings.Split(v.Date, "-")
-		month, _ := strconv.Atoi(date[1])
-		if date[0] == year {
-			res[month-1].Value += v.Value
-			counts[month-1]++
-		}
-	}
-	
-	for i := range res {
-		if counts[i] != 0 {
-			res[i].Value = res[i].Value / float64(counts[i])
-		}
-		res[i].Date = strings.Join([]string{year, strconv.Itoa(i+1), "01"}, "-")
-	}
-
-	log.Printf("%v", res)
-
 	var response bytes.Buffer
 	encoder := json.NewEncoder(&response)
-	encoder.Encode(&res)
+	encoder.Encode(&values)
 	return c.String(http.StatusOK, response.String())
 }
 
@@ -171,8 +155,6 @@ func getHistoricalValues(date string) error {
 	var body bytes.Buffer
 	io.Copy(&body, res.Body)
 	res.Body.Close()
-
-	fmt.Println(body)
 
 	decoder := json.NewDecoder(&body)
 	latest := LatestValues{}

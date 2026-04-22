@@ -24,7 +24,15 @@ var toGraph = new Chart("toGraph", {
     options: {}
 })
 
+var dataCache = []
+
 async function getGraphData(symbol) {
+    for (const data of dataCache) {
+        if (data[0].Symbol === symbol) {
+            return data
+        }
+    }
+
     const response = await fetch("/graph-data?symbol=" + symbol, {
         headers: {
             "content-type": "appliation/x-www-form-urlencoded"
@@ -32,6 +40,7 @@ async function getGraphData(symbol) {
         method: "POST"
     })
     const data = await response.json()
+    dataCache.push(data)
     return data
 }
 
@@ -41,28 +50,28 @@ function updateGraph(which) {
         fromGraph.data.labels = []
         fromGraph.data.datasets.forEach((dataset) => {dataset.data = []})
         getGraphData(document.getElementById("from").value).then(function(res) {
-            for (var i = 0; i < 12; i++) {
-                if (res[i].Value != 0) {
-                    fromGraph.data.labels.push(res[i].Date)
+            res.forEach((data) => {
+                if (data.Value != 0) {
+                    fromGraph.data.labels.push(data.Date)
                     fromGraph.data.datasets.forEach((dataset) => {
-                        dataset.data.push(res[i].Value)
+                        dataset.data.push(data.Value)
                     })
                 }
-            }
+            })
             fromGraph.update()
         })
     } else {
         toGraph.data.labels = []
         toGraph.data.datasets.forEach((dataset) => {dataset.data = []})
         getGraphData(document.getElementById("to").value).then(function(res) {
-            for (var i = 0; i < 12; i++) {
-                if (res[i].Value != 0) {
-                    toGraph.data.labels.push(res[i].Date)
+            res.forEach((data) => {
+                if (data.Value != 0) {
+                    toGraph.data.labels.push(data.Date)
                     toGraph.data.datasets.forEach((dataset) => {
-                        dataset.data.push(res[i].Value)
+                        dataset.data.push(data.Value)
                     })
                 }
-            }
+            })
             toGraph.update()
         })
     }

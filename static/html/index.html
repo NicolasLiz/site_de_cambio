@@ -3,8 +3,8 @@
 <html>
     <head>
         <title>Coin conversion</title>
-        <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0"></script>
+        <script src="/static/js/htmx.js"></script>
+        <script src="/static/js/chart.js"></script>
     </head>
     <body>
         <form id="conversion" hx-post="/convert" hx-target="#result"\>
@@ -187,7 +187,7 @@
                 <option value="MRO">MRO</option>
                 <option value="NPR">NPR</option>
                 <option value="OP">OP</option>
-                <option value="BRL">BRL</option>
+                <option value="BRL" selected="selected">BRL</option>
                 <option value="MUR">MUR</option>
                 <option value="RSD">RSD</option>
                 <option value="SDG">SDG</option>
@@ -236,7 +236,7 @@
                 <option value="DZD">DZD</option>
                 <option value="JOD">JOD</option>
                 <option value="GTQ">GTQ</option>
-                <option value="USD">USD</option>
+                <option value="USD" selected="selected">USD</option>
                 <option value="XPT">XPT</option>
                 <option value="JEP">JEP</option>
                 <option value="BOB">BOB</option>
