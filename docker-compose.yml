@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  currency-app:
+    build: .
+    ports:
+      - "80:8080" # Maps public port 80 to your Echo backend port 8080
+    volumes:
+      - ./db:/app/db # Persists your SQLite database folder on the VPS host
+    restart: unless-stopped

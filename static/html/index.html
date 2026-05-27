@@ -8,7 +8,7 @@
         <link rel="stylesheet" href="/static/css/style.css">
     </head>
     <body>
-        <form id="conversion" hx-post="/convert" hx-target="#result"\>
+        <form id="conversion" hx-post="/api/v1/convert" hx-target="#result"\>
             <input type="number" name="ammount" min="0" step="any"></input>
             <select name="from" onchange="updateGraph(1);" onfocus="this.selectedIndex=-1;" id="from">
                 <option value="SBD">SBD</option>
@@ -401,6 +401,391 @@
         </form>
         <canvas id="fromGraph" style="width=100%; max-width:500px; height=100%; max-height:300px"></canvas>
         <canvas id="toGraph" style="width=100%; max-width:500px; height=100%; max-height:300px"></canvas>
+
+        <div class="news-dashboard-container">
+            <h2>Latest Market News</h2>
+            <div id="news-loading" class="news-loading">Loading market coverage...</div>
+            <div id="news-grid" class="news-grid" style="display: none;"></div>
+        </div>
+
+        <style>
+            /* Main container matching your dashboard layout */
+            .news-dashboard-container {
+                font-family: Arial, Helvetica, sans-serif;
+                max-width: 1600px; /* Expands to fill widescreen displays */
+                width: 100%;
+                margin: 30px auto;
+                padding: 25px 30px;
+                background: #1e293b; /* Matches your form/trends background */
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            }
+
+            .news-dashboard-container h2 {
+                color: #38bdf8; /* Accent blue */
+                font-size: 22px;
+                font-weight: bold;
+                margin-bottom: 20px;
+            }
+
+            .news-loading {
+                color: #94a3b8;
+                font-style: italic;
+            }
+
+            /* 3-Column layout filling the screen width with side margins */
+            .news-grid {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 20px;
+            }
+
+            /* Responsive breakdown for smaller monitors and mobile devices */
+            @media (max-width: 1024px) {
+                .news-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+            @media (max-width: 640px) {
+                .news-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* Individual news card styling matching input elements */
+            .news-card {
+                background: #334155; /* Matches input fields background */
+                border: 1px solid #475569;
+                border-radius: 8px;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                transition: transform 0.2s ease, background 0.2s ease;
+                text-decoration: none; /* Removes underline from links */
+                color: inherit;
+            }
+
+            .news-card:hover {
+                background: #475569;
+                transform: translateY(-3px);
+            }
+
+            /* Optional article image styling */
+            .news-image {
+                width: 100%;
+                height: 160px;
+                object-fit: cover;
+                background: #0f172a; /* Fallback dark background while loading */
+            }
+
+            .news-body {
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                flex-grow: 1;
+            }
+
+            .news-source {
+                font-size: 0.75rem;
+                font-weight: bold;
+                text-transform: uppercase;
+                color: #38bdf8; /* Accent blue tag */
+                margin-bottom: 8px;
+                letter-spacing: 0.05em;
+            }
+
+            .news-title {
+                font-size: 1rem;
+                font-weight: bold;
+                color: #ffffff;
+                margin-bottom: 10px;
+                line-height: 1.4;
+                /* Limit title to 3 lines max to keep cards visually balanced */
+                display: -webkit-box;
+                -webkit-line-clamp: 3;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .news-snippet {
+                font-size: 0.85rem;
+                color: #cbd5e1; /* Muted gray text */
+                line-height: 1.5;
+                margin-bottom: 15px;
+                /* Limit description snippet to 3 lines */
+                display: -webkit-box;
+                -webkit-line-clamp: 3;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .news-footer {
+                margin-top: auto;
+                font-size: 0.75rem;
+                color: #94a3b8;
+                border-top: 1px solid #475569;
+                padding-top: 10px;
+            }
+        </style>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const apiKey = 'uIrVthLZZk3kWfTf24AB7NB79OpKlsf9ri3aZRPj';
+                // Requesting English language financial news, limited to 3 items
+                const url = `https://api.marketaux.com/v1/news/all?language=en&limit=3&api_token=${apiKey}`;
+
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to fetch Marketaux news data');
+                        return response.json();
+                    })
+                    .then(payload => {
+                        const loadingEl = document.getElementById('news-loading');
+                        const gridEl = document.getElementById('news-grid');
+
+                        loadingEl.style.display = 'none';
+                        gridEl.style.display = 'grid';
+                        gridEl.innerHTML = '';
+
+                        if (!payload.data || payload.data.length === 0) {
+                            loadingEl.innerText = 'No recent news found.';
+                            loadingEl.style.display = 'block';
+                            return;
+                        }
+
+                        payload.data.forEach(article => {
+                            // Create an anchor tag card so the entire component is safely clickable
+                            const card = document.createElement('a');
+                            card.className = 'news-card';
+                            card.href = article.url;
+                            card.target = '_blank';
+                            card.rel = 'noopener noreferrer';
+
+                            // Fallback to placeholder if the article has no valid cover image
+                            const imageUrl = article.image_url ? article.image_url : 'https://via.placeholder.com/400x200/1e293b/38bdf8?text=Market+News';
+                            
+                            // Format publication date string cleanly
+                            const pubDate = new Date(article.published_at).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            });
+
+                            card.innerHTML = `
+                                <img class="news-image" src="${imageUrl}" alt="News graphic" onerror="this.src='https://via.placeholder.com/400x200/1e293b/38bdf8?text=Market+News'">
+                                <div class="news-body">
+                                    <span class="news-source">${article.source || 'Market Intelligence'}</span>
+                                    <div class="news-title">${article.title}</div>
+                                    <div class="news-snippet">${article.description || ''}</div>
+                                    <div class="news-footer">Published: ${pubDate}</div>
+                                </div>
+                            `;
+
+                            gridEl.appendChild(card);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error getting news data:', error);
+                        document.getElementById('news-loading').innerText = 'Unable to load news updates at this moment.';
+                    });
+            });
+        </script>
+
+        <div class="crypto-trends-container">
+            <h2>Market Trends</h2>
+            <div id="trends-loading" class="loading-text">Loading latest market data...</div>
+            <div id="trends-grid" class="trends-grid" style="display: none;"></div>
+        </div>
+
+        <style>
+            /* Main container adjusted to match your body background/card structure */
+            .crypto-trends-container {
+                font-family: Arial, Helvetica, sans-serif;
+                max-width: 1600px;
+                margin: 30px auto;
+                padding: 25px 30px;
+                background: #1e293b; /* Matches your form background */
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+                width: 100%;
+            }
+
+            /* Container title matching your result text accents */
+            .crypto-trends-container h2 {
+                color: #38bdf8; /* Matches your accent blue */
+                font-size: 22px;
+                font-weight: bold;
+                margin-bottom: 20px;
+                text-align: left;
+            }
+
+            .loading-text {
+                color: #94a3b8; /* Muted slate gray */
+                font-style: italic;
+            }
+            
+            /* --- 6-COLUMN GRID SYSTEM --- */
+            .trends-grid {
+                display: grid;
+                grid-template-columns: repeat(6, minmax(0, 1fr)); 
+                gap: 15px;
+            }
+
+            /* Responsive adjustments for smaller screens */
+            @media (max-width: 1400px) {
+                .trends-grid {
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                }
+            }
+            @media (max-width: 900px) {
+                .trends-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+            @media (max-width: 480px) {
+                .trends-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+            /* ------------------------------------ */
+
+            /* Cards styled like your form input components */
+            .trend-card {
+                background: #334155; /* Matches input/select background */
+                padding: 14px;
+                border-radius: 8px;
+                border: 1px solid #475569; /* Subtle border using your focus color */
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                transition: transform 0.2s ease, background 0.2s ease;
+            }
+
+            /* Subtle hover element to blend with your input focus behaviors */
+            .trend-card:hover {
+                background: #475569;
+                transform: translateY(-2px);
+            }
+
+            .trend-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+            }
+
+            .symbol {
+                font-weight: bold;
+                font-size: 1.1rem;
+                color: #f1f5f9; /* Off-white text */
+            }
+
+            .current-val {
+                font-size: 1.3rem;
+                font-weight: 700;
+                color: #ffffff;
+                margin-bottom: 4px;
+            }
+
+            .prev-val {
+                font-size: 0.8rem;
+                color: #94a3b8; /* Muted slate text */
+            }
+
+            /* Redesigned Indicators to complement the dark theme */
+            .trend-indicator {
+                font-weight: bold;
+                font-size: 0.75rem;
+                padding: 3px 6px;
+                border-radius: 6px;
+                white-space: nowrap;
+            }
+
+            /* Accessible, bright indicators that pop on dark slate backgrounds */
+            .positive {
+                background-color: rgba(34, 197, 94, 0.15); /* Translucent Emerald Green */
+                color: #4ade80;
+            }
+
+            .negative {
+                background-color: rgba(239, 68, 68, 0.15); /* Translucent Ruby Red */
+                color: #f87171;
+            }
+
+            .neutral {
+                background-color: #475569;
+                color: #cbd5e1;
+            }
+        </style>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                // Change this URL to match your Go server configuration if needed
+                const endpointUrl = 'http://localhost:8080/api/v1/trends';
+
+                fetch(endpointUrl, {
+                    method: 'POST', // Using POST as specified in your setup
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(payload => {
+                    const loadingEl = document.getElementById('trends-loading');
+                    const gridEl = document.getElementById('trends-grid');
+
+                    // Hide loading text
+                    loadingEl.style.display = 'none';
+                    gridEl.style.display = 'grid';
+
+                    // Clear out any placeholder code inside the grid
+                    gridEl.innerHTML = '';
+
+                    // Map through the array data returned by your Echo handler
+                    payload.data.forEach(item => {
+                        const card = document.createElement('div');
+                        card.className = 'trend-card';
+
+                        // Format the percentage display and determine color rules
+                        let changeClass = 'neutral';
+                        let arrow = '➔';
+                        
+                        if (item.percent_change > 0) {
+                            changeClass = 'positive';
+                            arrow = '▲';
+                        } else if (item.percent_change < 0) {
+                            changeClass = 'negative';
+                            arrow = '▼';
+                        }
+
+                        // Injecting values safely into the card layout
+                        card.innerHTML = `
+                            <div class="trend-header">
+                                <span class="symbol">${item.symbol}</span>
+                                <span class="trend-indicator ${changeClass}">
+                                    ${arrow} ${Math.abs(item.percent_change).toFixed(2)}%
+                                </span>
+                            </div>
+                            <div class="current-val">$${item.current_value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4})}</div>
+                            <div class="prev-val">Was: $${item.previous_value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 4})}</div>
+                        `;
+
+                        gridEl.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    document.getElementById('trends-loading').innerText = 'Failed to load market trends. Make sure the backend is running.';
+                });
+            });
+        </script>
+
         <script src="script.js"></script>
     </body>
 </html>

@@ -60,12 +60,51 @@ func main() {
 	e.File("/", "static/html/index.html")
 	e.File("/script.js", "static/js/script.js")
 
-	e.POST("/convert", convertCoins)
+	e.POST("/api/v1/convert", convertCoins)
+	e.POST("/api/v1/trends", getTrendsHandler)
+
+	// get all values from date
+	e.POST("/api/v1/request", requestDate)
+
+	// get history of a coin
+	e.POST("/api/v1/history", requestHistory)
+
+	a, _ := database.GetMarketTrends()
+
+	fmt.Printf("%v", a)
+
 	e.POST("/graph-data", graphData)
 
-	if err := e.Start(":8080"); err != nil {
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8080" // Porta padrão caso esteja rodando localmente
+    }
+
+	if err := e.Start(":" + port); err != nil {
 		e.Logger.Error("failed to start server", "error", err)
 	}
+}
+
+func getTrendsHandler(c* echo.Context) error {
+	// 1. Fetch the computed trends from the database package
+	trends, err := database.GetMarketTrends()
+	if err != nil {
+		// If something went wrong internally, return a 500 Internal Server Error
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to retrieve market trends from the database",
+		})
+	}
+
+	// 2. If no data exists yet, return an empty array instead of null
+	if trends == nil {
+		trends = []database.Trend{}
+	}
+
+	// 3. Send the structured data back to the frontend
+	return c.JSON(http.StatusOK, map[string]any{
+		"success": true,
+		"data":    trends,
+	})
 }
 
 func convertLatest(from, to, ammount string) (float64, error) {
@@ -97,6 +136,10 @@ func convertCoins(c *echo.Context) error {
 	return c.String(http.StatusOK, fmt.Sprintf("%f", res))
 }
 
+// func requestDate(c *echo.Context) {
+//
+// }
+
 func graphData(c *echo.Context) error {
 	values, err := database.GetHistorical(c.FormValue("symbol"))
 	if err != nil {
@@ -119,8 +162,6 @@ func getCurrentValues() error {
 	io.Copy(&body, res.Body)
 	res.Body.Close()
 
-	fmt.Println(body)
-
 	decoder := json.NewDecoder(&body)
 	latest := LatestValues{}
 	err = decoder.Decode(&latest)
@@ -139,6 +180,93 @@ func getCurrentValues() error {
 	}
 
 	return nil
+}
+
+func requestHistory(c *echo.Context) error {
+	// Read value directly from the submitted HTML form
+	symbolStr := strings.ToUpper(strings.TrimSpace(c.FormValue("symbol")))
+
+	if symbolStr == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Missing 'symbol' form value",
+		})
+	}
+
+	// Use your existing package function to query local history
+	history, err := database.GetHistorical(symbolStr)
+	if err != nil {
+		log.Println("Database Error:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Internal database error",
+		})
+	}
+
+	// If the database has absolutely no records for this asset, baseline it from the API
+	if len(history) == 0 {
+		log.Printf("No history for %s. Fetching contemporary snapshot...", symbolStr)
+		
+		today := time.Now().Format("2006-01-02")
+		if err := getHistoricalValues(today); err != nil {
+			log.Println("API Fallback Error:", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "Asset not found and fallback sync failed",
+			})
+		}
+
+		// Pull records again now that the table has records
+		history, err = database.GetHistorical(symbolStr)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "Failed to load database entries post-sync",
+			})
+		}
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"symbol":  symbolStr,
+		"data":    history,
+	})
+}
+
+func requestDate(c *echo.Context) error {
+	// Read value directly from the submitted HTML form
+	dateStr := c.FormValue("date")
+
+	if dateStr == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Missing 'date' form value",
+		})
+	}
+
+	// Check if data exists for this date via your UpToDate logic
+	isUpToDate := database.UpToDate(dateStr)
+
+	if !isUpToDate {
+		log.Printf("Data for %s missing. Triggering API download...", dateStr)
+		// Call your existing function to fetch from external API and write to DB
+		if err := getHistoricalValues(dateStr); err != nil {
+			log.Println("API Error:", err)
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "Failed to retrieve and cache external API data",
+			})
+		}
+	}
+
+	// Retrieve data from your database to output as JSON
+	results, err := database.GetByDate(dateStr) // Uses the database helper mentioned previously
+	if err != nil {
+		log.Println("Database Error:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Internal database retrieval failed",
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"date":    dateStr,
+		"data":    results,
+	})
 }
 
 func getHistoricalValues(date string) error {
